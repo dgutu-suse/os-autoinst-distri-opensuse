@@ -1,7 +1,6 @@
 # SUSE's openQA tests
 #
-# Copyright © 2009-2013 Bernhard M. Wiedemann
-# Copyright © 2012-2016 SUSE LLC
+# Copyright © 2016 SUSE LLC
 #
 # Copying and distribution of this file, with or without modification,
 # are permitted in any medium without royalty provided the copyright
@@ -27,6 +26,7 @@ sub run() {
     script_run("/sbin/yast2 bootloader; echo yast2-bootloader-status-\$? > /dev/$serialdev", 0);
     assert_screen "test-yast2_bootloader-1", 300;
     send_key "alt-o";                                     # OK => Close
+    if (assert_screen 'yast2_bootloader-missing_package') { send_key 'alt-i'; }
     wait_serial("yast2-bootloader-status-0", 150) || die "'yast2 bootloader' didn't finish";
 }
 
