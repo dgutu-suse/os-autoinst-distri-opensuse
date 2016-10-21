@@ -619,7 +619,9 @@ sub load_consoletests() {
             loadtest "console/http_srv.pm";
             loadtest "console/mysql_srv.pm";
             loadtest "console/postgresql94server.pm";
-            loadtest "console/shibboleth.pm";
+            if (sle_version_at_least('12-SP1')) {    # shibboleth-sp not available on SLES 12 GA
+                loadtest "console/shibboleth.pm";
+            }
             if (!is_staging()) {
                 # Very temporary removal of this test from staging - rbrown 6 Apr 2016
                 loadtest "console/dns_srv.pm";
@@ -708,6 +710,7 @@ sub load_extra_test () {
     loadtest "console/yast2_xinetd.pm";
     loadtest "console/yast2_apparmor.pm";
     loadtest "console/openvswitch.pm";
+    loadtest "console/git.pm";
     # finished console test and back to desktop
     loadtest "console/consoletest_finish.pm";
 
@@ -913,6 +916,7 @@ sub load_fips_tests_misc() {
     loadtest "console/aide_check.pm";
     loadtest "console/journald_fss.pm";
     loadtest "fips/curl_fips_rc4_seed.pm";
+    loadtest "console/git.pm";
     loadtest "console/consoletest_finish.pm";
     loadtest "x11/hexchat_ssl.pm";
 }
