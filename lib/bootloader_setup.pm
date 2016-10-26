@@ -215,11 +215,15 @@ sub specific_bootmenu_params {
 sub select_bootmenu_video_mode {
     if (check_var("VIDEOMODE", "text")) {
         send_key "f3";
-        for (1 .. 2) {
-            send_key "up";
-        }
-        assert_screen "inst-textselected";
+        send_key_until_needlematch("inst-textselected", "up", 5);
         send_key "ret";
+        if (match_has_tag("inst-textselected-with_colormenu")) {
+            # The video mode menu was enhanced to support various color profiles
+            # Pressing 'ret' only 'toggles' text mode on/off, but no longer closes
+            # the menu, as the user might also want to pick a color profile
+            # close the menu by pressing 'esc'
+            send_key "esc";
+        }
     }
 }
 

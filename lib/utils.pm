@@ -76,6 +76,11 @@ sub wait_boot {
     my $bootloader_time = $args{bootloader_time} // 100;
     my $textmode        = $args{textmode};
 
+
+    # TODO how to register a post fail hook action here in general? E.g. in
+    # case the system is stuck in shutting down as in
+    # https://openqa.suse.de/tests/621517 or previous
+
     # Reset the consoles after the reboot: there is no user logged in anywhere
     reset_consoles;
 
@@ -143,6 +148,14 @@ sub wait_boot {
 
     if ($textmode || check_var('DESKTOP', 'textmode')) {
         assert_screen 'linux-login', 200;
+        reset_consoles;
+
+        # Without this login name and password won't get to the system. They get
+        # lost somewhere. Applies for all systems installed via svirt, but zKVM.
+        if (check_var('BACKEND', 'svirt') and !check_var('ARCH', 's390x')) {
+            wait_idle;
+        }
+
         return;
     }
 
@@ -312,32 +325,13 @@ sub ensure_unlocked_desktop {
     wait_still_screen(1);
 
     my $tags = [];
-    if (check_var('DESKTOP', 'gnome')) {
-        # gnome might show the old 'generic desktop' screen although that is
-        # just a left over in the framebuffer but actually the screen is
-        # already locked so we have to try something else to check
-        # responsiveness.
-        # open run command prompt (if screen isn't locked)
-        send_key "alt-f2";
-        push @$tags, 'desktop-runner';
-    }
-    else {
-        push @$tags, 'generic-desktop';
-    }
-
     # wait for run prompt or screen locker
     push @$tags, @$extra_tags;
+    push @$tags, 'generic-desktop';
     push @$tags, 'screenlock';
     push @$tags, 'gnome-screenlock-password';
     assert_screen($tags);
 
-    if (match_has_tag 'desktop-runner' or match_has_tag 'generic-desktop') {
-        # ensure screen is not immediately locked after checking
-        # also close command run prompt
-        send_key 'esc';
-        assert_screen([qw/generic-desktop/]);
-        return;
-    }
     for my $tag (@$extra_tags) {
         if (match_has_tag $tag) {
             # caller provided tag matched
@@ -345,12 +339,41 @@ sub ensure_unlocked_desktop {
             return;
         }
     }
+
+    # no screenlocker detected
+    if (match_has_tag 'generic-desktop') {
+        if (check_var('DESKTOP', 'gnome')) {
+            # gnome might show the old 'generic desktop' screen although that is
+            # just a left over in the framebuffer but actually the screen is
+            # already locked so we have to try something else to check
+            # responsiveness.
+            # open run command prompt (if screen isn't locked)
+            send_key "alt-f2";
+            if (check_screen([qw/desktop-runner/])) {
+                send_key "esc";
+                assert_screen([qw/generic-desktop/]);
+                return;
+            }
+            else {
+                assert_screen([qw/gnome-screenlock-password screenlock/]);
+            }
+        }
+        else {
+            return;
+        }
+
+    }
+
     # start to unlocking the screenlock
     if (check_var("DESKTOP", "gnome")) {
-        send_key "esc";
+        if (match_has_tag "screenlock") {
+            wait_screen_change {
+                send_key "esc";
+            };
+        }
         unless (get_var("LIVETEST")) {
             send_key "ctrl";    # show gnome screen lock in sle 11
-            assert_screen([qw/gnome-screenlock-password screenlock/]);
+            assert_screen([qw/gnome-screenlock-password/]);
             type_password;
             send_key "ret";
         }
@@ -520,9 +543,16 @@ sub validatelr {
     }
     # Live patching and other modules are not per-service pack channel model,
     # so use major version to validate their repos
-    if ($product eq 'SLE-Live-Patching') {
-        ($version) = $version =~ /^(\d+)/;
+    if ($product eq 'SLE-Live') {
+        $product = 'SLE-Live-Patching';
+        $version = '12';
     }
+    if ($product eq 'SLE-WSM') {
+        $product = 'SLE-Module-Web-Scripting';
+        $version = '12';
+    }
+    diag "validatelr alias:$alias product:$product cha:$product_channel version:$version";
+
     # Repo is checked for enabled/disabled state. If the information about the
     # expected state is not delivered to validatelr(), we use some heuristics to
     # determine the expected state: If the installation medium is a physical
@@ -549,7 +579,7 @@ sub validate_repos {
     script_run "clear";
     assert_script_run "zypper lr -d | tee /dev/$serialdev";
 
-    if (check_var('DISTRI', 'sle') and !get_var('STAGING')) {
+    if (check_var('DISTRI', 'sle') and !get_var('STAGING') and sle_version_at_least('12-SP1')) {
         script_run "clear";
 
         # On SLE we follow "SLE Channels Checking Table"
@@ -559,10 +589,6 @@ sub validate_repos {
         my @addonurl_keys = split(/,/, get_var('ADDONURL', ''));
         my $scc_addon_str = '';
         for my $scc_addon (split(/,/, get_var('SCC_ADDONS', ''))) {
-            if ($scc_addon eq 'live') {
-                $scc_addon_str .= "SLE-Live-Patching";
-                next;
-            }
             $scc_addon =~ s/geo/ha-geo/ if ($scc_addon eq 'geo');
             $scc_addon_str .= "SLE-" . uc($scc_addon) . ',';
         }
