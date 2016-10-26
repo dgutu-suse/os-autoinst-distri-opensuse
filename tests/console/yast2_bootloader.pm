@@ -26,7 +26,7 @@ sub run() {
     script_run("/sbin/yast2 bootloader; echo yast2-bootloader-status-\$? > /dev/$serialdev", 0);
     assert_screen "test-yast2_bootloader-1", 300;
     send_key "alt-o";                                     # OK => Close
-    assert_screen ([qw(yast2_bootloader-missing_package yast2_bootloader-finished)]);
+    assert_screen([qw(yast2_bootloader-missing_package yast2_bootloader-finished)]);
     if (match_has_tag('yast2_bootloader-missing_package')) {
         wait_screen_change { send_key 'alt-i'; };
     }
