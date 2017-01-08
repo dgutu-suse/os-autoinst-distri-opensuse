@@ -57,6 +57,7 @@ sub select_bootmenu_option {
     assert_screen 'inst-bootmenu';
     if (get_var('ZDUP') || get_var("ONLINE_MIGRATION")) {
         send_key 'ret';               # boot from hard disk
+        assert_screen 'grub2', 15;
         return 3;
     }
 

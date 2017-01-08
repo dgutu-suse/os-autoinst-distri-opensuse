@@ -212,7 +212,7 @@ sub fully_patch_system {
 sub minimal_patch_system {
     my (%args) = @_;
     $args{version_variable} //= 'VERSION';
-    if (sle_version_at_least('12-SP1', version_variable => $args{version_variable})) {
+    if (sle_version_at_least('12-SP1', version_variable => $args{version_variable}) && !check_var('HDDVERSION', 'SLES-11')) {
         zypper_call('patch --with-interactive -l --updatestack-only', exitcode => [0, 102, 103], timeout => 1500, log => 'minimal_patch.log');
     }
     else {
@@ -330,19 +330,27 @@ sub ensure_shim_import {
 
 sub reboot_gnome {
     wait_idle;
-    send_key "ctrl-alt-delete";    # reboot
-    assert_screen 'logoutdialog';
-    assert_and_click 'logoutdialog-reboot-highlighted';
+    if (check_var('HDDVERSION', 'SLES-11')) {
+        send_key "ctrl-alt-backspace";
+        send_key "ctrl-alt-backspace";
+        assert_and_click 'gnome-sle11sp4-reboot-btn';
+    }
+    else {
+        send_key "ctrl-alt-delete";    # reboot
+        assert_screen 'logoutdialog';
+        assert_and_click 'logoutdialog-reboot-highlighted';
+    }
 
     if (get_var("SHUTDOWN_NEEDS_AUTH")) {
         assert_screen 'reboot-auth';
         wait_still_screen 3;
         type_password undef, max_interval => 5;
         # Extra assert_and_click (with right click) to check the correct number of characters is typed and open up the 'show text' option
-        assert_and_click 'reboot-auth-typed', 'right';
-        assert_and_click 'reboot-auth-showtext';         # Click the 'Show Text' Option to enable the display of the typed text
-        assert_screen 'reboot-auth-correct-password';    # Check the password is correct
-
+        if (!check_var('HDDVERSION', 'SLES-11')) {
+            assert_and_click 'reboot-auth-typed', 'right';
+            assert_and_click 'reboot-auth-showtext';         # Click the 'Show Text' Option to enable the display of the typed text
+            assert_screen 'reboot-auth-correct-password';    # Check the password is correct
+        }
         # we need to kill ssh for iucvconn here,
         # because after pressing return, the system is down
         prepare_system_reboot;
