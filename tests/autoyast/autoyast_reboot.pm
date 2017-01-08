@@ -25,8 +25,8 @@ sub run {
     reset_consoles;
 
     #obsoletes installation/autoyast_reboot.pm
-    assert_screen("bios-boot",     900);
-    assert_screen("autoyast-boot", 20);
+    assert_screen("bios-boot", 900);
+    assert_screen("inst-bootmenu", 60) if check_var("BOOTFROM", "d");
 }
 
 sub test_flags {
