@@ -277,6 +277,7 @@ sub yast_scc_registration {
         if (check_screen("yast-scc-emptypkg", 15)) {
             send_key "alt-a";
         }
+        send_key $cmd{next};
     }
 
     my $ret = wait_serial "yast-scc-done-\\d+-", $timeout;
