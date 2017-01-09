@@ -1004,6 +1004,13 @@ sub prepare_target() {
     }
 }
 
+if (get_var("PATCH")) {
+    load_patching_tests();
+    load_inst_tests();
+    load_reboot_tests();
+    load_consoletests();
+    load_x11tests();
+    }
 # load the tests in the right order
 if (get_var("REGRESSION")) {
     if (check_var("REGRESSION", "installation")) {
@@ -1385,12 +1392,5 @@ if (get_var("TCM") || check_var("ADDONS", "tcm")) {
     }
 }
 
-if (get_var("PATCH")) {
-    load_patching_tests();
-    load_inst_tests();
-    load_reboot_tests();
-    load_consoletests();
-    load_x11tests();
-    }
 1;
 # vim: set sw=4 et:
