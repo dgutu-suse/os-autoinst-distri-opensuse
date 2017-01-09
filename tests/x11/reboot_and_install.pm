@@ -24,10 +24,10 @@ sub run() {
         if (get_var('AUTOYAST') || get_var('AUTOUPGRADE')) {
             bootmenu_default_params;
             specific_bootmenu_params;
-+        }
-+        # boot
-+        send_key "ret";
-+    }
+        }
+        # boot
+        send_key "ret";
+    }
 }
 
 sub post_fail_hook {
