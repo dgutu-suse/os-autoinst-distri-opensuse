@@ -238,8 +238,7 @@ sub load_boot_tests() {
         loadtest "installation/qa_net";
     }
     elsif (get_var("PXEBOOT")) {
-        mutex_lock('pxe');
-        mutex_unlock('pxe');
+        set_var("DELAYED_START", "1");
         loadtest "autoyast/pxe_boot";
     }
     else {
@@ -530,6 +529,7 @@ sub load_extra_tests() {
         loadtest "console/java";
         loadtest "console/curl_ipv6";
         loadtest "console/wget_ipv6";
+        loadtest "console/unzip";
 
         # finished console test and back to desktop
         loadtest "console/consoletest_finish";

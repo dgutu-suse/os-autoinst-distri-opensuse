@@ -389,8 +389,7 @@ sub load_boot_tests() {
         }
     }
     elsif (get_var("PXEBOOT")) {
-        mutex_lock('pxe');
-        mutex_unlock('pxe');
+        set_var("DELAYED_START", "1");
         loadtest "autoyast/pxe_boot";
     }
     else {
@@ -765,6 +764,7 @@ sub load_extra_test () {
     loadtest "console/java";
     loadtest "console/curl_ipv6";
     loadtest "console/wget_ipv6";
+    loadtest "console/unzip";
     # finished console test and back to desktop
     loadtest "console/consoletest_finish";
 
@@ -804,6 +804,7 @@ sub load_x11tests() {
         if (gnomestep_is_applicable()) {
             loadtest "x11/eog";
             loadtest "x11/rhythmbox";
+            loadtest "x11/wireshark";
             loadtest "x11/ImageMagick";
             loadtest "x11/ghostscript";
         }
@@ -1179,6 +1180,12 @@ elsif (get_var("VIRT_AUTOTEST")) {
     }
     elsif (get_var("VIRT_PRJ5_PVUSB")) {
         loadtest "virt_autotest/pvusb_run";
+    }
+    elsif (get_var("VIRT_PRJ6_VIRT_V2V_SRC")) {
+        loadtest "virt_autotest/virt_v2v_src";
+    }
+    elsif (get_var("VIRT_PRJ6_VIRT_V2V_DST")) {
+        loadtest "virt_autotest/virt_v2v_dst";
     }
 }
 elsif (get_var("QAM_MINIMAL")) {
