@@ -1004,13 +1004,6 @@ sub prepare_target() {
     }
 }
 
-if (get_var("PATCH")) {
-    load_patching_tests();
-    load_inst_tests();
-    load_reboot_tests();
-    load_consoletests();
-    load_x11tests();
-    }
 # load the tests in the right order
 if (get_var("REGRESSION")) {
     if (check_var("REGRESSION", "installation")) {
@@ -1239,6 +1232,13 @@ elsif (ssh_key_import) {
     load_reboot_tests();
     # verify previous defined ssh keys
     loadtest "x11/ssh_key_verify";
+}
+elsif (get_var("PATCH")) {
+    load_patching_tests();
+    load_inst_tests();
+    load_reboot_tests();
+    load_consoletests();
+    load_x11tests();
 }
 elsif (get_var("HPC")) {
     if (check_var("HPC", "support")) {
