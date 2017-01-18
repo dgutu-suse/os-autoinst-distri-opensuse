@@ -197,11 +197,8 @@ sub fill_in_registration_data {
         }
     }
     else {
-        if (!get_var('SCC_REGISTER', '') =~ /addon|network/) {
-            assert_screen("module-selection");
-            send_key $cmd{next};
+        send_key $cmd{next} if (assert_screen("module-selection"));
         }
-    }
 }
 
 sub select_addons_in_textmode {
@@ -277,7 +274,6 @@ sub yast_scc_registration {
         if (check_screen("yast-scc-emptypkg", 15)) {
             send_key "alt-a";
         }
-        send_key $cmd{next};
     }
 
     my $ret = wait_serial "yast-scc-done-\\d+-", $timeout;
