@@ -163,6 +163,14 @@ sub installwithaddonrepos_is_applicable() {
     return get_var("HAVE_ADDON_REPOS") && !get_var("UPGRADE") && !get_var("NET");
 }
 
+sub updates_is_applicable() {
+    # we don't want live systems to run out of memory or virtual disk space.
+    # Applying updates on a live system would not be persistent anyway.
+    # Also, applying updates on BOOT_TO_SNAPSHOT is useless.
+    # Also, updates on INSTALLONLY do not match the meaning
+    return !get_var('INSTALLONLY') && !get_var('BOOT_TO_SNAPSHOT') && !get_var('DUALBOOT') && !get_var('UPGRADE') && !is_livesystem;
+}
+
 sub guiupdates_is_applicable() {
     return get_var("DESKTOP") =~ /gnome|kde|xfce|lxde/ && !check_var("FLAVOR", "Rescue-CD");
 }
@@ -392,6 +400,7 @@ sub load_consoletests() {
             loadtest "console/xorg_vt";
         }
         loadtest "console/zypper_lr";
+        loadtest 'console/enable_usb_repo' if check_var('USBBOOT', 1);
         if (have_addn_repos) {
             loadtest "console/zypper_ar";
         }
@@ -626,6 +635,7 @@ sub load_mate_tests() {
 sub load_x11tests() {
     return unless (!get_var("INSTALLONLY") && is_desktop_installed() && !get_var("DUALBOOT") && !get_var("RESCUECD"));
 
+    loadtest "x11/user_gui_login" unless get_var("LIVETEST") || get_var("NOAUTOLOGIN");
     if (get_var("XDMUSED")) {
         loadtest "x11/x11_login";
     }
@@ -764,10 +774,7 @@ sub install_online_updates {
 }
 
 sub load_system_update_tests {
-    # we don't want live systems to run out of memory or virtual disk space.
-    # Applying updates on a live system would not be persistent anyway
-    return if get_var("INSTALLONLY") || get_var("DUALBOOT") || get_var("UPGRADE") || is_livesystem;
-
+    return unless updates_is_applicable;
     if (need_clear_repos) {
         loadtest "update/zypper_clear_repos";
     }
