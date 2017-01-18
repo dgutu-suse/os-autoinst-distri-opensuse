@@ -60,11 +60,11 @@ sub patching_sle12() {
 
     assert_script_run("zypper lr && zypper mr --disable --all");
     save_screenshot;
-    yast_scc_registration;
+    yast_scc_registration();
     assert_script_run('zypper lr -d');
-    minimal_patch_system;
+	minimal_patch_system(version_variable => 'HDDVERSION');
 
-    if (sle_version_at_least('12-SP1')) {
+    if (sle_version_at_least('12-SP1', version_variable => 'HDDVERSION')) {
         assert_script_run('SUSEConnect -d');
         my $output = script_output 'SUSEConnect -s';
         die "System is still registered" unless $output =~ /Not Registered/;

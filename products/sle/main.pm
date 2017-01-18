@@ -971,9 +971,9 @@ sub load_fips_tests_crypt() {
 }
 
 sub load_patching_tests() {
-    loadtest "boot/boot_to_desktop";
+    loadtest 'boot/boot_to_desktop_sym';
     loadtest "update/patch_before_migration";
-    loadtest "console/consoletest_finish";
+    loadtest "console/consoletest_finish_sym";
     loadtest "x11/reboot_and_install";
 }
 sub prepare_target() {
@@ -1242,13 +1242,6 @@ elsif (ssh_key_import) {
     # verify previous defined ssh keys
     loadtest "x11/ssh_key_verify";
 }
-elsif (get_var("PATCH")) {
-    load_patching_tests();
-    load_inst_tests();
-    load_reboot_tests();
-    load_consoletests();
-    load_x11tests();
-}
 elsif (get_var("HPC")) {
     if (check_var("HPC", "support")) {
         loadtest "hpc/barrier_init";
@@ -1293,6 +1286,13 @@ else {
     elsif (get_var("ONLINE_MIGRATION")) {
         load_boot_tests();
         load_online_migration_tests();
+    }
+    elsif (get_var("PATCH")) {
+        load_patching_tests();
+        load_inst_tests();
+        load_reboot_tests();
+        #load_consoletests();
+        #load_x11tests();
     }
     elsif (get_var("BOOT_HDD_IMAGE")) {
         if (get_var("RT_TESTS")) {

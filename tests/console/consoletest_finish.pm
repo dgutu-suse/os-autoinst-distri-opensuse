@@ -21,11 +21,7 @@ sub run() {
 
     my $console = select_console 'root-console';
     # cleanup
-    if (check_var('HDDVERSION', 'SLES-11')) {
-        type_string "who -a \n";
-        save_screenshot();
-    }
-    else {
+    if (!check_var("HDDVERSION", "SLES-11")) {
         type_string "loginctl --no-pager\n";
         wait_still_screen(2);
         save_screenshot();
