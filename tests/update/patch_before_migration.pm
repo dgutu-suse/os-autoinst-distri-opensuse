@@ -57,7 +57,10 @@ sub patching_sle12() {
     # stop packagekit service
     script_run "systemctl mask packagekit.service";
     script_run "systemctl stop packagekit.service";
-	set_var('SCC_REGISTER', 'installation') if get_var('SCC_ADDONS'); # workaround for migration of sles12sp2+sdk+allpatterns
+
+	# register system and addons in textmode for all archs
+	set_var("VIDEOMODE", 'text');
+	set_var('SCC_REGISTER', 'installation');
 
     assert_script_run("zypper lr && zypper mr --disable --all");
     save_screenshot;
@@ -96,7 +99,7 @@ sub run() {
     else {
         patching_sle12;
     }
-	set_var('VIDEOMODE', ''); # workaround for migration of sles12sp2+sdk+allpatterns
+	set_var('VIDEOMODE', '');
 }
 
 sub test_flags {
