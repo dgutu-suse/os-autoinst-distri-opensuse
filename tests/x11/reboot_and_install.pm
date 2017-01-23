@@ -24,7 +24,7 @@ sub run() {
     bootmenu_default_params;
     specific_bootmenu_params;
     registration_bootloader_params(utils::VERY_SLOW_TYPING_SPEED);
-    send_key "ret"; #boot
+    send_key "ret";    #boot
 }
 
 sub post_fail_hook {
