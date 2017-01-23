@@ -58,15 +58,15 @@ sub patching_sle12() {
     script_run "systemctl mask packagekit.service";
     script_run "systemctl stop packagekit.service";
 
-	# register system and addons in textmode for all archs
-	set_var("VIDEOMODE", 'text');
-	set_var('SCC_REGISTER', 'installation');
+    # register system and addons in textmode for all archs
+    set_var("VIDEOMODE",    'text');
+    set_var('SCC_REGISTER', 'installation');
 
     assert_script_run("zypper lr && zypper mr --disable --all");
     save_screenshot;
     yast_scc_registration();
     assert_script_run('zypper lr -d');
-	minimal_patch_system(version_variable => 'HDDVERSION');
+    minimal_patch_system(version_variable => 'HDDVERSION');
 
     if (sle_version_at_least('12-SP1', version_variable => 'HDDVERSION')) {
         assert_script_run('SUSEConnect -d');
@@ -99,7 +99,7 @@ sub run() {
     else {
         patching_sle12;
     }
-	set_var('VIDEOMODE', '');
+    set_var('VIDEOMODE', '');
 }
 
 sub test_flags {
