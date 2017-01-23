@@ -197,8 +197,11 @@ sub fill_in_registration_data {
         }
     }
     else {
-        send_key $cmd{next} if (assert_screen("module-selection"));
+        if (!get_var('SCC_REGISTER', '') =~ /addon|network/) {
+            assert_screen("module-selection");
+            send_key $cmd{next};
         }
+    }
 }
 
 sub select_addons_in_textmode {
