@@ -100,6 +100,7 @@ sub run() {
         patching_sle12;
     }
     set_var('VIDEOMODE', '');
+	set_var('SCCREGISTRATION', '');
 }
 
 sub test_flags {
