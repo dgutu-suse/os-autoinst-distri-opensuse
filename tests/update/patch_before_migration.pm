@@ -58,10 +58,6 @@ sub patching_sle12() {
     script_run "systemctl mask packagekit.service";
     script_run "systemctl stop packagekit.service";
 
-    # register system and addons in textmode for all archs
-    set_var("VIDEOMODE",    'text');
-    set_var('SCC_REGISTER', 'installation');
-
     assert_script_run("zypper lr && zypper mr --disable --all");
     save_screenshot;
     yast_scc_registration();
@@ -99,8 +95,10 @@ sub run() {
     else {
         patching_sle12;
     }
-    set_var('VIDEOMODE', '');
-	set_var('SCCREGISTRATION', '');
+
+    # register system and addons in textmode for all archs
+    set_var("VIDEOMODE",    '');
+    set_var('SCC_REGISTER', '');
 }
 
 sub test_flags {
