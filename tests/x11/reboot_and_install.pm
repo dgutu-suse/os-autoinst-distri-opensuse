@@ -15,14 +15,16 @@ use strict;
 
 use testapi;
 use utils 'reboot_gnome';
-use bootloader_setup qw(select_bootmenu_option bootmenu_default_params);
+use bootloader_setup;
+use registration;
 
 sub run() {
     reboot_gnome;    # reboot from previously booted hdd to do pre check or change e.g. before upgrade
-    select_bootmenu_option;
+    return if select_bootmenu_option == 3;
     bootmenu_default_params;
-    # boot
-    send_key "ret";
+    specific_bootmenu_params;
+    registration_bootloader_params;
+    send_key "ret";    #boot
 }
 
 sub post_fail_hook {

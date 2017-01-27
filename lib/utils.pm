@@ -343,7 +343,6 @@ sub reboot_gnome {
         assert_and_click 'reboot-auth-typed', 'right';
         assert_and_click 'reboot-auth-showtext';         # Click the 'Show Text' Option to enable the display of the typed text
         assert_screen 'reboot-auth-correct-password';    # Check the password is correct
-
         # we need to kill ssh for iucvconn here,
         # because after pressing return, the system is down
         prepare_system_reboot;
