@@ -1275,6 +1275,16 @@ elsif (get_var("HPC")) {
 }
 else {
     if (get_var("AUTOYAST") || get_var("AUTOUPGRADE")) {
+        if (get_var('PATCH')) {
+            load_patching_tests();
+        }
+        else {
+            load_boot_tests();
+        }
+        load_autoyast_tests();
+        load_reboot_tests();
+    }
+    elsif (get_var('AUTOUPGRADE') && get_var('PATCH')) {
         load_patching_tests();
         load_autoyast_tests();
         load_reboot_tests();
