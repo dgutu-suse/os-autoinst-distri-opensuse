@@ -69,6 +69,10 @@ sub addraid {
     }
     send_key $cmd{next};
     assert_screen 'partition-role';
+    if ($step == 2 and get_var('UEFI') and !get_var('OFW')) {
+        send_key "alt-e";
+        assert_screen 'partition-role-UEFI-selected';
+    }
     if ($step == 3 and get_var("LVM")) {
         send_key "alt-a";    # Raw Volume
     }

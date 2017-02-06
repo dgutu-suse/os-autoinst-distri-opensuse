@@ -21,12 +21,10 @@ sub run() {
 
     my $console = select_console 'root-console';
     # cleanup
-    if (!check_var("HDDVERSION", "SLES-11")) {
-        type_string "loginctl --no-pager\n";
-        wait_still_screen(2);
-        save_screenshot();
-        script_run "systemctl unmask packagekit.service";
-    }
+    type_string "loginctl --no-pager\n";
+    wait_still_screen(2);
+    save_screenshot();
+    script_run "systemctl unmask packagekit.service";
     # logout root (and later user) so they don't block logout
     # in KDE
     type_string "exit\n";

@@ -971,9 +971,9 @@ sub load_fips_tests_crypt() {
 }
 sub load_patching_tests() {
     loadtest 'boot/boot_to_desktop_sym';
-    loadtest "update/patch_before_migration";
-    loadtest "console/consoletest_finish_sym";
-    loadtest "x11/reboot_and_install";
+    loadtest 'update/patch_before_migration';
+    loadtest 'console/consoletest_finish_sym';
+    loadtest 'x11/reboot_and_install';
 }
 sub prepare_target() {
     if (get_var("BOOT_HDD_IMAGE")) {
@@ -1275,11 +1275,11 @@ elsif (get_var("HPC")) {
 else {
     if (get_var("AUTOYAST") || get_var("AUTOUPGRADE")) {
         if (get_var('PATCH')) {
-		load_patching_tests();
-	}
-	else {
-		load_boot_tests();
-	}
+            load_patching_tests();
+        }
+        else {
+            load_boot_tests();
+        }
         load_autoyast_tests();
         load_reboot_tests();
     }

@@ -23,8 +23,9 @@ sub run() {
     return if select_bootmenu_option == 3;
     bootmenu_default_params;
     specific_bootmenu_params;
-    registration_bootloader_params(utils::VERY_SLOW_TYPING_SPEED);
-    send_key "ret";    #boot
+    registration_bootloader_params;
+    # boot
+    send_key "ret";
 }
 
 sub post_fail_hook {

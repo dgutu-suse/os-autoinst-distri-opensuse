@@ -201,7 +201,6 @@ sub fill_in_registration_data {
             assert_screen("module-selection");
             send_key $cmd{next};
         }
-        else {send_key $cmd{next};}
     }
 }
 
