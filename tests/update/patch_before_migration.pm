@@ -5,7 +5,7 @@
 # notice and this notice are preserved.  This file is offered as-is,
 # without any warranty.
 
-# Summary: Patch SLE11* and SLE12* qcow2 images before migration (offline)
+# Summary: Patch SLE qcow2 images before migration (offline)
 # Maintainer: Dumitru Gutu <dgutu@suse.de>
 
 use base "consoletest";
