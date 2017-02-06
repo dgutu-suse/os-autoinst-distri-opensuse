@@ -16,10 +16,10 @@ use registration;
 
 sub patching_sle() {
 
-    set_var("VIDEOMODE",    'text');
-    set_var('SCC_REGISTER', 'installation');
-
     select_console 'root-console';
+
+    set_var("VIDEOMODE",    'text');
+    set_var("SCC_REGISTER", 'installation');
 
     # stop packagekit service
     script_run "systemctl mask packagekit.service";
@@ -45,19 +45,21 @@ sub patching_sle() {
         save_screenshot;
     }
     assert_script_run("zypper mr --enable --all");
-
-    set_var("VIDEOMODE",    '');
-    set_var('SCC_REGISTER', '');
 }
 
 sub run() {
 
     select_console 'root-console';
+
     type_string "chown $username /dev/$serialdev\n";
     # enable Y2DEBUG all time
     type_string "echo 'export Y2DEBUG=1' >> /etc/bash.bashrc.local\n";
     script_run "source /etc/bash.bashrc.local";
+
     patching_sle();
+
+    set_var("VIDEOMODE",    '');
+    set_var("SCC_REGISTER", '');
 }
 
 sub test_flags {
