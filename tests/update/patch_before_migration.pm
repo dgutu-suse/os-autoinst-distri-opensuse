@@ -29,6 +29,7 @@ sub patching_sle() {
     save_screenshot;
     yast_scc_registration();
     assert_script_run('zypper lr -d');
+
     if (get_var('MINIMAL_UPDATE')) {
         minimal_patch_system(version_variable => 'HDDVERSION');
     }
