@@ -55,6 +55,7 @@ sub init_cmd() {
       mountpoint alt-m
       filesystem alt-s
       expertpartitioner alt-e
+      encrypt alt-e
       resize alt-i
       acceptlicense alt-a
       instdetails alt-d
@@ -373,6 +374,8 @@ sub activate_console {
 
     $console =~ m/^(\w+)-(console|virtio-terminal)/;
     my ($name, $user, $type) = ($1, $1, $2);
+    $name = $user //= '';
+    $type //= '';
     if ($name eq 'user') {
         $user = $testapi::username;
     }

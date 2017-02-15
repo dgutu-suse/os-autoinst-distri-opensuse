@@ -241,6 +241,9 @@ sub load_boot_tests() {
         set_var("DELAYED_START", "1");
         loadtest "autoyast/pxe_boot";
     }
+    elsif (check_var('ARCH', 's390x')) {
+        loadtest "installation/bootloader_s390";
+    }
     else {
         loadtest "installation/bootloader";
     }
@@ -248,6 +251,9 @@ sub load_boot_tests() {
 
 sub load_inst_tests() {
     loadtest "installation/welcome";
+    if (check_var('ARCH', 's390x')) {
+        loadtest "installation/disk_activation";
+    }
     if (get_var("MULTIPATH")) {
         loadtest "installation/multipath";
     }
@@ -335,8 +341,14 @@ sub load_inst_tests() {
 }
 
 sub load_reboot_tests() {
+    if (check_var('ARCH', 's390x')) {
+        loadtest "installation/reconnect_s390";
+    }
     if (installyaststep_is_applicable()) {
-        loadtest "installation/grub_test";
+        # s390 has no 'grub' that can be easily checked
+        if (!check_var('ARCH', 's390x')) {
+            loadtest "installation/grub_test";
+        }
         if (get_var('ENCRYPT')) {
             loadtest "installation/boot_encrypt";
         }
@@ -463,37 +475,31 @@ sub load_consoletests() {
 
 }
 
-sub load_yast2_gui_tests() {
-    loadtest "yast2_gui/yast2_control_center";
-    loadtest "yast2_gui/yast2_bootloader";
-    loadtest "yast2_gui/yast2_datetime";
-    loadtest "yast2_gui/yast2_firewall";
-    loadtest "yast2_gui/yast2_hostnames";
-    loadtest "yast2_gui/yast2_lang";
-    loadtest "yast2_gui/yast2_network_settings";
-    if (snapper_is_applicable()) {
-        loadtest "yast2_gui/yast2_snapper";
-    }
-    loadtest "yast2_gui/yast2_software_management";
-    loadtest "yast2_gui/yast2_users";
-}
-
 sub load_extra_tests() {
-
-    return unless get_var('EXTRATEST') || get_var('Y2UITEST');
+    # Put tests that filled the conditions below
+    # 1) you don't want to run in stagings below here
+    # 2) the application is not rely on desktop environment
+    # 3) running based on preinstalled image
+    return unless get_var('EXTRATEST');
     # pre-conditions for extra tests ie. the tests are running based on preinstalled image
     return if get_var("INSTALLONLY") || get_var("DUALBOOT") || get_var("RESCUECD");
 
     # setup $serialdev permission and so on
     loadtest "console/consoletest_setup";
     loadtest "console/hostname";
-
-    if (console_is_applicable() && get_var("EXTRATEST")) {
-        # Put tests that filled the conditions below
-        # 1) you don't want to run in stagings below here
-        # 2) the application is not rely on desktop environment
-        # 3) running based on preinstalled image
-
+    if (any_desktop_is_applicable()) {
+        if (!get_var("NOAUTOLOGIN")) {
+            loadtest "x11/multi_users_dm";
+        }
+        if (gnomestep_is_applicable() && check_var('VERSION', '42.2')) {
+            # 42.2 feature - not even on Tumbleweed
+            loadtest "x11/gdm_session_switch";
+        }
+        if (gnomestep_is_applicable()) {
+            loadtest "x11/seahorse";
+        }
+    }
+    else {
         loadtest "console/check_console_font";
         loadtest "console/zypper_lr";
         loadtest "console/zypper_ar";
@@ -539,51 +545,8 @@ sub load_extra_tests() {
         if (!check_var('ARCH', 'aarch64')) {
             loadtest "toolchain/crash";
         }
-
-        return 1;
     }
-    elsif (any_desktop_is_applicable() && get_var("Y2UITEST")) {
-        loadtest "console/zypper_lr";
-        loadtest "console/zypper_ref";
-        # start extra yast console test from here
-        loadtest "console/yast2_proxy";
-        loadtest "console/yast2_ntpclient";
-        loadtest "console/yast2_tftp";
-        loadtest "console/yast2_vnc";
-        loadtest "console/yast2_samba";
-        loadtest "console/yast2_xinetd";
-        loadtest "console/yast2_apparmor";
-        loadtest "console/yast2_http";
-        loadtest "console/yast2_ftp";
-        # yast-lan related tests do not work when using networkmanager.
-        # (Livesystem and laptops do use networkmanager)
-        if (!get_var("LIVETEST") && !get_var("LAPTOP")) {
-            loadtest "console/yast2_cmdline";
-            loadtest "console/yast2_dns_server";
-            loadtest "console/yast2_nfs_client";
-        }
-        # back to desktop
-        loadtest "console/consoletest_finish";
-        load_yast2_gui_tests();
-
-        return 1;
-    }
-    elsif (any_desktop_is_applicable() && get_var("EXTRATEST")) {
-        if (!get_var("NOAUTOLOGIN")) {
-            loadtest "x11/multi_users_dm";
-        }
-        if (gnomestep_is_applicable() && check_var('VERSION', '42.2')) {
-            # 42.2 feature - not even on Tumbleweed
-            loadtest "x11/gdm_session_switch";
-        }
-        if (gnomestep_is_applicable()) {
-            loadtest "x11/seahorse";
-        }
-        return 1;
-    }
-
-
-    return 0;
+    return 1;
 }
 
 sub load_otherDE_tests() {
@@ -874,7 +837,9 @@ sub load_slenkins_tests {
 }
 
 # load the tests in the right order
-if (get_var("REGRESSION")) {
+if (maybe_load_kernel_tests()) {
+}
+elsif (get_var("REGRESSION")) {
     if (get_var("KEEPHDDS")) {
         load_login_tests();
     }
@@ -897,6 +862,9 @@ elsif (get_var("RESCUESYSTEM")) {
 }
 elsif (get_var("LINUXRC")) {
     loadtest "linuxrc/system_boot";
+}
+elsif (get_var('Y2UITEST')) {
+    load_yast2_ui_tests;
 }
 elsif (get_var("SUPPORT_SERVER")) {
     loadtest "support_server/boot";
@@ -923,26 +891,6 @@ elsif (ssh_key_import) {
     # verify previous defined ssh keys
     loadtest "x11/ssh_key_verify";
 }
-elsif (get_var('INSTALL_LTP')) {
-    loadtest 'kernel/install_ltp';
-    loadtest 'kernel/boot_ltp';
-    loadtest 'kernel/shutdown_ltp';
-}
-elsif (get_var('LTP_SETUP_NETWORKING')) {
-    loadtest 'kernel/boot_ltp';
-    loadtest 'kernel/ltp_setup_networking';
-    loadtest 'kernel/shutdown_ltp';
-}
-elsif (get_var('LTP_COMMAND_FILE')) {
-    loadtest 'kernel/boot_ltp';
-    if (get_var('LTP_COMMAND_FILE') =~ m/ltp-aiodio.part[134]/) {
-        loadtest 'kernel/create_junkfile_ltp';
-    }
-    loadtest 'kernel/run_ltp';
-}
-elsif (get_var('VIRTIO_CONSOLE_TEST')) {
-    loadtest 'kernel/virtio_console';
-}
 else {
     if (get_var("LIVETEST") || get_var('LIVE_INSTALLATION')) {
         load_boot_tests();
@@ -964,10 +912,7 @@ else {
         load_zdup_tests();
     }
     elsif (get_var("BOOT_HDD_IMAGE")) {
-        if (get_var('UEFI') && get_var('BOOTFROM')) {
-            loadtest "boot/uefi_bootmenu";
-        }
-        loadtest "boot/boot_to_desktop";
+        boot_hdd_image;
         if (get_var("ISCSI_SERVER")) {
             set_var('INSTALLONLY', 1);
             loadtest "iscsi/iscsi_server";

@@ -95,10 +95,6 @@ sub cleanup_needles {
         unregister_needle_tags('ENV-DISTRI-CASP');
     }
 
-    if (!check_var("ARCH", "s390x")) {
-        unregister_needle_tags('ENV-ARCH-s390x');
-    }
-
     if (get_var('OFW')) {
         unregister_needle_tags('ENV-OFW-0');
     }
@@ -458,6 +454,9 @@ sub load_inst_tests() {
         elsif (get_var("LVM")) {
             loadtest "installation/partitioning_lvm";
         }
+        elsif (get_var('FULL_LVM_ENCRYPT')) {
+            loadtest 'installation/partitioning_full_lvm';
+        }
         if (get_var("FILESYSTEM")) {
             loadtest "installation/partitioning_filesystem";
         }
@@ -602,6 +601,7 @@ sub load_consoletests() {
                 loadtest "console/installation_snapshots";
             }
             loadtest "console/snapper_undochange";
+            loadtest "console/snapper_create";
         }
         if (get_var("DESKTOP") !~ /textmode/ && !check_var("ARCH", "s390x")) {
             loadtest "console/xorg_vt";
@@ -695,26 +695,6 @@ sub load_consoletests() {
     }
 }
 
-sub load_yast2_gui_tests() {
-    return
-      unless (!get_var("INSTALLONLY")
-        && is_desktop_installed()
-        && !get_var("DUALBOOT")
-        && !get_var("RESCUECD")
-        && get_var("Y2UITEST"));
-    loadtest "x11/yast2_lan_restart";
-    loadtest "yast2_gui/yast2_control_center";
-    loadtest "yast2_gui/yast2_bootloader";
-    loadtest "yast2_gui/yast2_datetime";
-    loadtest "yast2_gui/yast2_firewall";
-    loadtest "yast2_gui/yast2_hostnames";
-    loadtest "yast2_gui/yast2_lang";
-    loadtest "yast2_gui/yast2_network_settings";
-    loadtest "yast2_gui/yast2_snapper";
-    loadtest "yast2_gui/yast2_software_management";
-    loadtest "yast2_gui/yast2_users";
-}
-
 sub load_extra_test () {
     # Put tests that filled the conditions below
     # 1) you don't want to run in stagings below here
@@ -753,6 +733,7 @@ sub load_extra_test () {
                 loadtest 'console/btrfs_send_receive';
             }
         }
+        loadtest 'console/snapper_thin_lvm';
         loadtest 'console/command_not_found';
         loadtest 'console/openvswitch';
         loadtest 'console/git';
@@ -977,15 +958,7 @@ sub load_patching_tests() {
 }
 sub prepare_target() {
     if (get_var("BOOT_HDD_IMAGE")) {
-        if (check_var("BACKEND", "svirt")) {
-            if (check_var("ARCH", "s390x")) {
-                loadtest "installation/bootloader_zkvm";
-            }
-            else {
-                loadtest "installation/bootloader_svirt";
-            }
-        }
-        loadtest "boot/boot_to_desktop";
+        boot_hdd_image;
     }
     else {
         load_boot_tests();
@@ -995,7 +968,9 @@ sub prepare_target() {
 }
 
 # load the tests in the right order
-if (get_var("REGRESSION")) {
+if (maybe_load_kernel_tests()) {
+}
+elsif (get_var("REGRESSION")) {
     if (check_var("REGRESSION", "installation")) {
         load_boot_tests();
         load_inst_tests();
@@ -1024,6 +999,10 @@ if (get_var("REGRESSION")) {
     elsif (check_var("REGRESSION", "other")) {
         loadtest "boot/boot_to_desktop";
         load_x11regression_other();
+    }
+    elsif (check_var("REGRESSION", "piglit")) {
+        loadtest "boot/boot_to_desktop";
+        loadtest "x11regressions/piglit/piglit";
     }
 }
 elsif (get_var("FEATURE")) {
@@ -1102,21 +1081,6 @@ elsif (get_var("QA_TESTSET")) {
     }
     loadtest "qa_automation/" . get_var("QA_TESTSET");
 }
-elsif (get_var('INSTALL_LTP')) {
-    if (get_var('INSTALL_KOTD')) {
-        loadtest 'kernel/install_kotd';
-    }
-    loadtest 'kernel/install_ltp';
-    loadtest 'kernel/boot_ltp';
-    loadtest 'kernel/shutdown_ltp';
-}
-elsif (get_var('LTP_COMMAND_FILE')) {
-    loadtest 'kernel/boot_ltp';
-    loadtest 'kernel/run_ltp';
-}
-elsif (get_var('VIRTIO_CONSOLE_TEST')) {
-    loadtest 'kernel/virtio_console';
-}
 elsif (get_var("VIRT_AUTOTEST")) {
     if (get_var("PROXY_MODE")) {
         loadtest "virt_autotest/proxymode_login_proxy";
@@ -1176,6 +1140,12 @@ elsif (get_var("VIRT_AUTOTEST")) {
     elsif (get_var("VIRT_PRJ6_VIRT_V2V_DST")) {
         loadtest "virt_autotest/virt_v2v_dst";
     }
+    elsif (get_var("VIRT_NEW_GUEST_MIGRATION_SOURCE")) {
+        loadtest "virt_autotest/guest_migration_src";
+    }
+    elsif (get_var("VIRT_NEW_GUEST_MIGRATION_DESTINATION")) {
+        loadtest "virt_autotest/guest_migration_dst";
+    }
 }
 elsif (get_var("QAM_MINIMAL")) {
     prepare_target();
@@ -1200,32 +1170,11 @@ elsif (is_kgraft) {
     loadtest "qam-kgraft/reboot_restore";
 }
 elsif (get_var("EXTRATEST")) {
-    prepare_target();
+    boot_hdd_image;
     load_extra_test();
 }
 elsif (get_var("Y2UITEST")) {
-    load_boot_tests();
-    loadtest "installation/finish_desktop";
-    # setup $serialdev permission and so on
-    loadtest "console/consoletest_setup";
-    # start extra yast console test from here
-    loadtest "console/check_console_font";
-    loadtest "console/zypper_lr";
-    loadtest "console/zypper_ref";
-    loadtest "console/yast2_proxy";
-    loadtest "console/yast2_ntpclient";
-    loadtest "console/yast2_tftp";
-    loadtest "console/yast2_vnc";
-    loadtest "console/yast2_samba";
-    loadtest "console/yast2_xinetd";
-    loadtest "console/yast2_apparmor";
-    loadtest "console/yast2_lan_hostname";
-    loadtest "console/yast2_nis";
-    loadtest "console/yast2_http";
-    loadtest "console/yast2_ftp";
-    # back to desktop
-    loadtest "console/consoletest_finish";
-    load_yast2_gui_tests();
+    load_yast2_ui_tests;
 }
 elsif (get_var("WINDOWS")) {
     loadtest "installation/win10_installation";
@@ -1316,6 +1265,9 @@ else {
             }
             if (get_var("ADDONS")) {
                 loadtest "installation/addon_products_yast2";
+            }
+            if (get_var('SCC_ADDONS')) {
+                loadtest "installation/addon_products_via_SCC_yast2";
             }
             if (get_var("ISCSI_SERVER")) {
                 set_var('INSTALLONLY', 1);
