@@ -643,6 +643,9 @@ sub validate_repos_sle {
         if (get_var('TEST') =~ m{zdup_offline}) {
             $uri = "$dvd:///";
         }
+        if (get_var('PATCH')) {
+            $uri = "$cd:///";
+        }
         else {
             $uri = "ftp://openqa.suse.de/SLE-";
         }

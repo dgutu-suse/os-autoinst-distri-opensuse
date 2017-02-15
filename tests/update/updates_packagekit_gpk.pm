@@ -23,7 +23,7 @@ sub turn_off_screensaver() {
     # in case we rebooted
     assert_script_sudo "chown $testapi::username /dev/$testapi::serialdev";
 
-	if (check_var("DESKTOP", "gnome")) {
+    if (check_var("DESKTOP", "gnome")) {
         script_run("gsettings set org.gnome.desktop.session idle-delay 0");
     }
     else {

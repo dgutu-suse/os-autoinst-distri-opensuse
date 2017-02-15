@@ -29,7 +29,13 @@ sub patching_sle() {
     save_screenshot;
     yast_scc_registration();
     assert_script_run('zypper lr -d');
-    minimal_patch_system(version_variable => 'HDDVERSION');
+    if (get_var('MINIMAL_UPDATE')) {
+        minimal_patch_system(version_variable => 'HDDVERSION');
+    }
+
+    if (get_var('FULL_UPDATE')) {
+        fully_patch_system();
+    }
 
     if (sle_version_at_least('12-SP1', version_variable => 'HDDVERSION')) {
         assert_script_run('SUSEConnect -d');
@@ -45,6 +51,8 @@ sub patching_sle() {
         save_screenshot;
     }
     assert_script_run("zypper mr --enable --all");
+    set_var("VIDEOMODE", '');
+    set_var("SCC_REGISTER", '') if (!check_var('TEST', 'migration_offline_sle12sp1_smt'));
 }
 
 sub run() {
@@ -57,9 +65,6 @@ sub run() {
     script_run "source /etc/bash.bashrc.local";
 
     patching_sle();
-
-    set_var("VIDEOMODE",    '');
-    set_var("SCC_REGISTER", '');
 }
 
 sub test_flags {

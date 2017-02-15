@@ -65,7 +65,7 @@ sub run() {
     }
     else {
         #SUSEMIRROR not set, zdup from ftp source for online migration
-        if (check_var('TEST', "migration_zdup_online_sle12_ga")) {
+        if (check_var('TEST' =~ m{zdup_online_sle12_ga})) {
             my $flavor  = get_var("FLAVOR");
             my $version = get_var("VERSION");
             my $build   = get_var("BUILD");
@@ -90,6 +90,7 @@ sub run() {
                        [ -z \$dev ] || echo \"found dev \$dev with label \$label\"";
             # if that fails, e.g. if volume descriptor too long, just try /dev/sr0
             $defaultrepo = "dvd:/?devices=\${dev:-/dev/sr0}";
+            $defaultrepo = "cd:/?devices=\${dev:-/dev/sr0}" if get_var('PATCH');
         }
     }
 
