@@ -19,15 +19,14 @@ use utils;
 
 sub install {
     # utils
-    zypper_call("in expect iputils psmisc tcpdump telnet", log => 'utils.log');
+    zypper_call("in iputils psmisc tcpdump", log => 'utils.log');
 
     # clients
-    zypper_call("in dhcp-client finger mrsh-rsh-compat telnet", log => 'clients.log');
+    zypper_call("in dhcp-client finger telnet", log => 'clients.log');
 
     # services
-    zypper_call("in dhcp-server dnsmasq finger-server mrsh-server munge nfs-kernel-server rdist rpcbind rsync tcpd telnet-server vsftpd xinetd",
-        log => 'services.log');
-    my $services = "dnsmasq munge mrlogind.socket mrshd.socket nfsserver rpcbind vsftpd xinetd";
+    zypper_call("in dhcp-server dnsmasq finger-server nfs-kernel-server rdist rpcbind rsync tcpd telnet-server vsftpd xinetd", log => 'services.log');
+    my $services = "dnsmasq nfsserver rpcbind vsftpd xinetd";
     assert_script_run "systemctl enable $services";
     assert_script_run "systemctl start $services";
 }
@@ -37,8 +36,6 @@ sub setup {
 
     $content = <<EOF;
 # ltp specific setup
-mrsh
-mrlogin
 pts/1
 pts/2
 pts/3
@@ -57,9 +54,6 @@ EOF
     }
     assert_script_run 'sed -i \'s/^#\(\s*bind\s*=\)\s*$/\1 0.0.0.0/\' /etc/xinetd.conf';
 
-    # rlogin
-    assert_script_run 'echo "+" > /root/.rhosts';
-
     # ftp
     assert_script_run 'sed -i \'s/^\s*\(root\)\s*$/# \1/\' /etc/ftpusers';
 
@@ -70,7 +64,10 @@ EOF
     assert_script_run 'which ping6 >/dev/null 2>&1 || ln -s `which ping` /usr/local/bin/ping6';
 
     # dhcpd
-    assert_script_run 'touch /var/lib/dhcp6/db/dhcpd6.leases';
+    assert_script_run 'touch /var/lib/dhcp/db/dhcpd.leases /var/lib/dhcp6/db/dhcpd6.leases';
+
+    # echo/echoes, getaddrinfo_01
+    assert_script_run 'sed -i \'s/^\(hosts:\s+files\s\+dns$\)/\1 myhostname/\' /etc/nsswitch.conf';
 }
 
 # poo#14402
@@ -88,5 +85,11 @@ sub test_flags {
 }
 
 1;
+
+=head1 Discussion
+
+See poo#16648 for disabled LTP networking related tests.
+
+=cut
 
 # vim: set sw=4 et:

@@ -55,6 +55,10 @@ sub run() {
     if (check_var('SCC_REGISTER', 'installation')) {
         $timeout = 5500;
     }
+    # on s390 we might need to install additional packages depending on the installation method
+    if (check_var('ARCH', 's390x')) {
+        push(@tags, 'additional-packages');
+    }
     my $keep_trying                    = 1;
     my $screenlock_previously_detected = 0;
     my $mouse_x                        = 1;
@@ -93,16 +97,27 @@ sub run() {
             $screenlock_previously_detected = 1;
             next;
         }
+        if (match_has_tag('additional-packages')) {
+            send_key 'alt-i';
+        }
         last;
     }
 
-    # Upload logs before reboot
+    # Stop reboot countdown for e.g. uploading logs
     if (!get_var("REMOTE_CONTROLLER")) {
         do {
             send_key 'alt-s';
-        } until (wait_still_screen(2, 4));
+        } until (wait_still_screen(3, 4));
         select_console 'install-shell';
         assert_screen 'inst-console';
+
+        # check for right boot-device on s390x (zVM)
+        if (check_var('BACKEND', 's390x')) {
+            if (script_run('lsreipl | grep 0.0.0150')) {
+                record_soft_failure 'default bootdevice not set';
+                script_run('chreipl ccw 0.0.0150');
+            }
+        }
         $self->get_ip_address();
         $self->save_upload_y2logs();
         select_console 'installation';
@@ -113,13 +128,17 @@ sub run() {
     };
 
     if (check_var('VIRSH_VMM_FAMILY', 'xen')) {
-        reset_consoles;
         # VNC connection to SUT (the 'sut' console) is terminated on Xen via svirt
         # backend and we have to re-connect *after* the restart, otherwise we end up
         # with stalled VNC connection. The tricky part is to know *when* the system
         # is already booting.
-        sleep 7;
+        reset_consoles;
+        select_console 'svirt';
+        sleep 4;
         select_console 'sut';
+        # After restart connection to serial console seems to be closed. We have to
+        # open it again.
+        console('svirt')->attach_to_running({stop_vm => 1});
     }
 }
 

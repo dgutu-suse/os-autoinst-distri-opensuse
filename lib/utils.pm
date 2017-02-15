@@ -37,7 +37,12 @@ our @EXPORT = qw(
   turn_off_kde_screensaver
   random_string
   handle_login
+<<<<<<< HEAD
   ensure_ready_terminal
+=======
+  handle_emergency
+  service_action
+>>>>>>> 522f422aca747d5db73f1c9f94aba0a4c4ead243
 );
 
 
@@ -129,8 +134,16 @@ sub is_jeos() {
     return get_var('FLAVOR', '') =~ /^JeOS/;
 }
 
-sub is_casp() {
-    return check_var('DISTRI', 'casp');
+# Check if distribution is CASP
+# If argument is passed then flavor has to match (universal VMX keyword)
+sub is_casp {
+    my $flavor = shift;
+    return 0 unless check_var('DISTRI', 'casp');
+    return 1 unless $flavor;
+
+    # There is one DVD and multiple VMX (for KVM/XEN/VMware/Cloud) flavors
+    return !check_var('FLAVOR', 'DVD') if $flavor eq 'VMX';
+    return check_var('FLAVOR', $flavor);
 }
 
 sub type_string_slow {
@@ -223,8 +236,10 @@ sub minimal_patch_system {
 }
 
 sub workaround_type_encrypted_passphrase {
-    if (check_var('ARCH', 'ppc64le')
-        && (get_var('ENCRYPT') && !get_var('ENCRYPT_ACTIVATE_EXISTING') || get_var('ENCRYPT_FORCE_RECOMPUTE')))
+    if (
+        get_var('FULL_LVM_ENCRYPT')
+        || (check_var('ARCH', 'ppc64le')
+            && (get_var('ENCRYPT') && !get_var('ENCRYPT_ACTIVATE_EXISTING') || get_var('ENCRYPT_FORCE_RECOMPUTE'))))
     {
         record_soft_failure 'workaround https://fate.suse.com/320901' if sle_version_at_least('12-SP3');
         unlock_if_encrypted;
@@ -669,9 +684,9 @@ sub validate_repos {
     my ($version) = @_;
     $version //= get_var('VERSION');
 
-    assert_script_run "zypper lr | tee /dev/$serialdev";
+    assert_script_run "zypper lr | tee /dev/$serialdev", 180;
     script_run "clear";
-    assert_script_run "zypper lr -d | tee /dev/$serialdev";
+    assert_script_run "zypper lr -d | tee /dev/$serialdev", 180;
 
     if (check_var('DISTRI', 'sle') and !get_var('STAGING') and sle_version_at_least('12-SP1')) {
         validate_repos_sle($version);
@@ -681,7 +696,8 @@ sub validate_repos {
 sub setup_online_migration {
     my ($self) = @_;
     # if source system is minimal installation then boot to textmode
-    $self->wait_boot(textmode => !is_desktop_installed);
+    # we don't care about source system start time because our SUT is upgraded one
+    $self->wait_boot(textmode => !is_desktop_installed, ready_time => 600);
     select_console 'root-console';
 
     # stop packagekit service
@@ -720,27 +736,43 @@ sub handle_login {
     send_key "ret";
 }
 
-=head2 ensure_ready_terminal
-Make sure terminal is ready by creating file with short content
-When it's done successfuly then it's proven terminal is ready
-By default non-root user shell is expected, with argument is
-expected root shell
+# Handle emergency mode
+sub handle_emergency {
+    if (match_has_tag('emergency-shell')) {
+        # get emergency shell logs for bug, scp doesn't work
+        script_run "cat /run/initramfs/rdsosreport.txt > /dev/$serialdev";
+        die "hit emergency shell";
+    }
+    elsif (match_has_tag('emergency-mode')) {
+        type_password;
+        send_key 'ret';
+        script_run "journalctl --no-pager > /dev/$serialdev";
+        die "hit emergency mode";
+    }
+}
+
+=head2 service_action
+
+  service_action($service_name [, {type => ['$unit_type', ...] [,action => ['$service_action', ...]]}]);
+
+Control systemd services. C<type> may be set to service, socket, ... and C<$action>
+to start, stop, ... Default action is to 'stop' $service_name.service unit file.
+
+Example:
+
+  service_action('dbus', {type => ['socket', 'service'], action => ['unmask', 'start']});
+
 =cut
-sub ensure_ready_terminal {
-    my $root        = @_;
-    my $max_retries = 10;
-    for (1 .. $max_retries) {
-        eval {
-            if ($root) {
-                assert_script_run 'echo ready > term && grep ready term && rm term';
-            }
-            else {
-                assert_script_sudo 'echo ready > term && grep ready term && rm term';
-            }
-        };
-        last unless ($@);
-        diag "terminal is not ready: $@";
-        diag "terminal is not ready. Retry: $_ of $max_retries";
+sub service_action {
+    my ($name, $args) = @_;
+
+    # default action is to 'stop' ${service_name}.service unit file
+    my @types   = $args->{type}   ? @{$args->{type}}   : 'service';
+    my @actions = $args->{action} ? @{$args->{action}} : 'stop';
+    foreach my $action (@actions) {
+        foreach my $type (@types) {
+            assert_script_run "systemctl $action $name.$type";
+        }
     }
 }
 

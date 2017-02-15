@@ -39,51 +39,46 @@ if (check_var('VIRSH_VMM_FAMILY', 'xen') && check_var('VIRSH_VMM_TYPE', 'linux')
 
 sub load_boot_tests() {
     if (check_var('FLAVOR', 'DVD')) {
-        loadtest 'installation/bootloader';
+        if (get_var("UEFI")) {
+            loadtest 'installation/bootloader_uefi';
+        }
+        else {
+            loadtest 'installation/bootloader';
+        }
     }
     else {
         if (check_var("BACKEND", "svirt")) {
             loadtest "installation/bootloader_svirt";
         }
-        loadtest 'boot/boot_to_desktop';
+        else {
+            # For all [non]uefi VMX images as boot screens are the same
+            loadtest 'installation/bootloader_uefi';
+        }
     }
 }
 
-# Simplified workflow - fate#321754
-# https://trello.com/c/JKCIbUbv/778-5-casp-simplified-workflow
+# One-click installer - fate#322328
 sub load_inst_tests() {
-    # Set up keyboard and password
-    # https://trello.com/c/zG6NNbwv/782-5-casp-root-password-keyboard-dialog
-    loadtest 'casp/keyboard_password';
+    loadtest 'casp/oci_overview';
 
-    # Registration
-    if (get_var('SCC_REGISTER', '') eq 'installation') {
-        loadtest 'installation/scc_registration';
-    }
-    else {
-        loadtest 'installation/skip_registration';
-    }
+    # Register system
+    loadtest 'casp/oci_register' if check_var('REGISTER', 'installation');
 
-    # System Role
-    # https://trello.com/c/s1t0IbQy/784-3-casp-roles
-    loadtest 'casp/system_role';
-
-    # Role specific dialog
-    # https://trello.com/c/OFmpN4xq/785-5-casp-role-specific-dialog
-
-    # Installation proposal
-    # https://trello.com/c/X5VAq8PJ/779-3-casp-installation-proposal
-    loadtest 'installation/installation_overview';
+    # Set root password
+    loadtest 'casp/oci_password';
+    # Set system Role
+    loadtest 'casp/oci_role';
+    # Start installation
+    loadtest 'casp/oci_install';
 
     # Actual installation
-    loadtest 'installation/start_install';
     loadtest 'installation/install_and_reboot';
 }
 
 # Feature tests before yast installation
 sub load_rcshell_tests {
     loadtest 'casp/rcshell_start';
-    #    loadtest 'casp/libzypp_config';
+    loadtest 'casp/libzypp_config';
     loadtest 'casp/timezone_utc';
 }
 
@@ -96,10 +91,13 @@ sub load_feature_tests {
         # Load VMX feature tests
     }
     # Load universal feature tests
-    #    loadtest 'casp/libzypp_config';
+    loadtest 'casp/libzypp_config';
     loadtest 'casp/timezone_utc';
     loadtest 'casp/filesystem_ro';
+    loadtest 'casp/services_enabled';
+    loadtest 'casp/one_line_checks';
     loadtest 'casp/nfs_client' if get_var('NFS_SHARE');
+    loadtest 'casp/journal_check';
 }
 
 # ==== Installation workflow ====
@@ -110,9 +108,19 @@ if (check_var('FLAVOR', 'DVD')) {
         load_rcshell_tests;
         return 1;
     }
-    load_inst_tests;
+    if (get_var('AUTOYAST')) {
+        loadtest 'autoyast/installation';
+    }
+    else {
+        load_inst_tests;
+    }
 }
 loadtest 'casp/first_boot';
+
+# ==== Extra tests run after installation  ====
+if (get_var('REGISTER')) {
+    loadtest 'casp/register_and_check';
+}
 
 if (get_var('EXTRA', '') =~ /FEATURES/) {
     load_feature_tests;
