@@ -642,7 +642,7 @@ sub validate_repos_sle {
             validatelr({product => "SLE-", uri => "$cd:///", version => $version});
         }
         elsif (check_var('FLAVOR', 'Server-DVD-HA')) {
-            validatelr({product => "SLES", uri => "$cd:///", version => $version});
+            validatelr({product => "SLES", uri => "$dvd:///", version => $version});
             validatelr({product => 'SLE-*HA', uri => get_var('ADDONURL_HA') || "$dvd:///", version => $version});
             if (exists $h_addonurl{geo} || exists $h_addons{geo}) {
                 validatelr({product => 'SLE-*HAGEO', uri => get_var('ADDONURL_GEO') || "$dvd:///", version => $version});
