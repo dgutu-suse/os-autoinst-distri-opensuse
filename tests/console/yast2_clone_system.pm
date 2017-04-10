@@ -21,7 +21,7 @@ sub run() {
 
     # Install for TW and generate profile
     zypper_call "in autoyast2";
-    script_run("yast2 clone_system; echo yast2-clone-system-status-\$? > /dev/$serialdev", 0);
+    script_run("yast2 clone_system; echo yast2-clone-system-status-\$? > /dev/$serialdev", 10);
 
     # workaround for bsc#1013605
     assert_screen([qw(dhcp-popup yast2_console-finished)], 200);
